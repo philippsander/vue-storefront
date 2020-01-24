@@ -10,8 +10,9 @@ export default interface RootState {
   shipping: any,
   user: any,
   wishlist: any,
-  attribute: string,
+  attribute: any,
   ui: any,
+  newsletter: any,
   category: {
     current_path: string,
     current_product_query: any,

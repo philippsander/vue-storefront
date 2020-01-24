@@ -3,7 +3,8 @@
     <div class="bg-cl-secondary py35 pl20">
       <div class="container">
         <breadcrumbs
-          :routes="[{name: 'Homepage', route_link: '/'}]"
+          :with-homepage="true"
+          :routes="[]"
           active-route="My Account"
         />
         <h1>
@@ -18,7 +19,9 @@
           <nav class="static-menu serif h4 mb35">
             <ul class="m0 p0">
               <li class="mb20" v-for="(page, index) in navigation" :key="index" @click="notify(page.title)">
-                <router-link :to="localizedRoute(page.link)" class="cl-accent">{{ page.title }}</router-link>
+                <router-link :to="localizedRoute(page.link)" class="cl-accent">
+                  {{ page.title }}
+                </router-link>
               </li>
             </ul>
           </nav>
@@ -43,6 +46,8 @@ import MyOrders from '../components/core/blocks/MyAccount/MyOrders'
 import MyOrder from '../components/core/blocks/MyAccount/MyOrder'
 import MyRecentlyViewed from '../components/core/blocks/MyAccount/MyRecentlyViewed'
 import NoSSR from 'vue-no-ssr'
+import {RecentlyViewedModule} from '@vue-storefront/core/modules/recently-viewed'
+import {registerModule} from '@vue-storefront/core/lib/modules'
 
 export default {
   data () {
@@ -67,6 +72,9 @@ export default {
     MyOrder,
     MyRecentlyViewed,
     'no-ssr': NoSSR
+  },
+  beforeCreate () {
+    registerModule(RecentlyViewedModule)
   },
   mixins: [MyAccount],
   methods: {

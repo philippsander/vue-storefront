@@ -1,5 +1,6 @@
-import { productThumbnailPath } from '@vue-storefront/core/helpers'
+import { getThumbnailForProduct, getProductConfiguration } from '@vue-storefront/core/modules/cart/helpers'
 
+// @deprecated moved to theme
 export const MicrocartProduct = {
   name: 'MicrocartProduct',
   props: {
@@ -10,10 +11,10 @@ export const MicrocartProduct = {
   },
   computed: {
     thumbnail () {
-      const thumbnail = productThumbnailPath(this.product)
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        return this.getThumbnail(thumbnail, 310, 300) // for offline support we do need to have ProductTile version
-      } else return this.getThumbnail(thumbnail, 150, 150)
+      return getThumbnailForProduct(this.product)
+    },
+    configuration () {
+      return getProductConfiguration(this.product)
     }
   },
   methods: {

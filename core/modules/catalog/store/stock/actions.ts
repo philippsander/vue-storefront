@@ -1,90 +1,71 @@
-import Vue from 'vue'
 import { ActionTree } from 'vuex'
-import i18n from '@vue-storefront/i18n'
-// requires cart module
-import * as types from '@vue-storefront/core/modules/cart/store/mutation-types'
+import * as stockMutationTypes from '@vue-storefront/core/modules/catalog/store/stock/mutation-types'
 import RootState from '@vue-storefront/core/types/RootState'
 import StockState from '../../types/StockState'
-import rootStore from '@vue-storefront/core/store'
-import { TaskQueue } from '@vue-storefront/core/lib/sync'
+import config from 'config'
+import { StockService } from '@vue-storefront/core/data-resolver'
+import { getStatus, getProductInfos } from '@vue-storefront/core/modules/catalog/helpers/stock'
 import { Logger } from '@vue-storefront/core/lib/logger'
 
 const actions: ActionTree<StockState, RootState> = {
-  /**
-   * Reset current configuration and selected variatnts
-   */
-  check (context, { product, qty = 1 }) {
-    return new Promise((resolve, reject) => {
-      if (rootStore.state.config.stock.synchronize) {
-        TaskQueue.queue({ url: rootStore.state.config.stock.endpoint + '/check?sku=' + encodeURIComponent(product.sku),
-          payload: {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-          },
-          product_sku: product.sku,
-          callback_event: 'store:stock/stockAfterCheck'
-        }).then((task:any) => {
-          resolve({ qty: product.stock ? product.stock.qty : 0, status: product.stock ? (product.stock.is_in_stock ? 'ok' : 'out_of_stock') : 'ok', onlineCheckTaskId: task.task_id }) // if online we can return ok because it will be verified anyway
-        })
-      } else {
-        resolve({ qty: product.stock ? product.stock.qty : 0, status: product.stock ? (product.stock.is_in_stock ? 'ok' : 'out_of_stock') : 'volatile' }) // if not online, cannot check the source of true here
+  async queueCheck ({ dispatch }, { product }) {
+    const checkStatus = {
+      qty: product.stock ? product.stock.qty : 0,
+      status: getStatus(product, 'ok')
+    }
+
+    if (config.stock.synchronize) {
+      const task = await StockService.queueCheck(product.sku, 'cart/stockSync')
+
+      // @ts-ignore
+      Logger.debug(`Stock quantity checked for ${task.product_sku}, response time: ${task.transmited_at - task.created_at} ms`, 'stock')()
+
+      return {
+        ...checkStatus,
+        onlineCheckTaskId: task.task_id
       }
-    })
+    }
+
+    return {
+      ...checkStatus,
+      status: getStatus(product, 'volatile')
+    }
   },
-  /**
-   * Reset current configuration and selected variatnts
-   */
-  list (context, { skus }) {
-    return new Promise((resolve, reject) => {
-      if (rootStore.state.config.stock.synchronize) {
-        TaskQueue.execute({ url: rootStore.state.config.stock.endpoint + '/list?skus=' + encodeURIComponent(skus.join(',')),
-          payload: {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-          },
-          skus: skus
-        }).then((task: any) => {
-          if (task.resultCode === 200) {
-            for (const si of task.result) {
-              context.state.cache[si.product_id] = { is_in_stock: si.is_in_stock, qty: si.qty, product_id: si.product_id } // TODO: should be moved to mutation
-            }
-          }
-          resolve(task) // if online we can return ok because it will be verified anyway
-        }).catch((err) => {
-          Logger.error(err, 'stock')()
-          resolve(null)
-        })
-      } else {
-        resolve(null) // if not online, cannot check the source of true here
+  async check (context, { product }) {
+    if (config.stock.synchronize) {
+      const { result, task_id } = await StockService.check(product.sku)
+      return {
+        qty: result ? result.qty : 0,
+        status: getStatus(result, 'ok'),
+        onlineCheckTaskId: task_id
       }
-    })
+    }
+
+    return {
+      qty: product.stock ? product.stock.qty : 0,
+      status: getStatus(product, 'volatile')
+    }
   },
-  clearCache (context) {
-    context.state.cache = {}
+  async list ({ commit }, { skus }) {
+    if (!config.stock.synchronize) return
+
+    const task = await StockService.list(skus)
+
+    if (task.resultCode === 200) {
+      const productInfos = getProductInfos(task.result)
+
+      for (const productInfo of productInfos) {
+        commit(stockMutationTypes.SET_STOCK_CACHE_PRODUCT, {
+          productId: productInfo.product_id,
+          productInfo
+        })
+      }
+    }
+
+    return task
   },
-  stockAfterCheck (context, event) {
-    setTimeout(() => {
-      // TODO: Move to cart module
-      rootStore.dispatch('cart/getItem', event.product_sku).then((cartItem) => {
-        if (cartItem && event.result.code !== 'ENOTFOUND') {
-          if (!event.result.is_in_stock) {
-            if (!rootStore.state.config.stock.allowOutOfStockInCart) {
-              Logger.log('Removing product from cart' + event.product_sku, 'stock')()
-              rootStore.commit('cart/' + types.CART_DEL_ITEM, { product: { sku: event.product_sku } }, {root: true})
-            } else {
-              rootStore.dispatch('cart/updateItem', { product: { errors: { stock: i18n.t('Out of the stock!') }, sku: event.product_sku, is_in_stock: false } })
-            }
-          } else {
-            rootStore.dispatch('cart/updateItem', { product: { info: { stock: i18n.t('In stock!') }, sku: event.product_sku, is_in_stock: true } })
-          }
-          Vue.prototype.$bus.$emit('cart-after-itemchanged', { item: cartItem })
-        }
-      })
-      Logger.debug('Stock quantity checked for ' + event.result.product_id + ', response time: ' + (event.transmited_at - event.created_at) + ' ms', 'stock')()
-      Logger.debug(event, 'stock')()
-    }, 500)
+  clearCache ({ commit }) {
+    commit(stockMutationTypes.SET_STOCK_CACHE, {})
   }
 }
 

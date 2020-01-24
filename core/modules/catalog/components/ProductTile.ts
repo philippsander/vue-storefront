@@ -1,6 +1,7 @@
 import { productThumbnailPath } from '@vue-storefront/core/helpers'
 import { currentStoreView } from '@vue-storefront/core/lib/multistore'
 import { formatProductLink } from '@vue-storefront/core/modules/url/helpers'
+import config from 'config'
 
 export const ProductTile = {
   name: 'ProductTile',
@@ -19,11 +20,11 @@ export const ProductTile = {
   computed: {
     productLink () {
       return formatProductLink(this.product, currentStoreView().storeCode)
-    },  
+    },
     thumbnail () {
       // todo: play with the image based on category page filters - eg. when 'red' color is chosen, the image is going to be 'red'
       let thumbnail = productThumbnailPath(this.product)
-      return this.getThumbnail(thumbnail, 310, 300)
+      return this.getThumbnail(thumbnail, config.products.thumbnails.width, config.products.thumbnails.height)
     },
     thumbnailObj () {
       return {
@@ -33,10 +34,10 @@ export const ProductTile = {
       }
     },
     isOnSale () {
-      return this.product.sale === '1' ? 'sale' : ''
+      return [true, '1'].includes(this.product.sale) ? 'sale' : ''
     },
     isNew () {
-      return this.product.new === '1' ? 'new' : ''
+      return [true, '1'].includes(this.product.new) ? 'new' : ''
     }
   }
 }

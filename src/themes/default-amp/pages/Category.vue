@@ -2,18 +2,24 @@
   <div id="category">
     <header class="bg-cl-secondary py35 pl20">
       <div class="container">
-        <breadcrumbs :routes="breadcrumbs.routes" :active-route="category.name" />
+        <breadcrumbs />
         <div class="row middle-sm">
-          <h1 class="col-sm-9 category-title mb10"> {{ category.name }} </h1>
+          <h1 class="col-sm-9 category-title mb10">
+            {{ category.name }}
+          </h1>
         </div>
       </div>
     </header>
     <div class="container pb60">
       <div class="row m0 pt15">
-        <p class="col-xs-12 hidden-md m0 px20 cl-secondary">{{ productsCounter }} items</p>
+        <p class="col-xs-12 hidden-md m0 px20 cl-secondary">
+          {{ productsCounter }} items
+        </p>
         <div class="col-md-9 pt20 px10 border-box products-list block-center">
           <div v-if="isCategoryEmpty" class="hidden-xs">
-            <h4 data-testid="noProductsInfo">{{ $t('No products found!') }}</h4>
+            <h4 data-testid="noProductsInfo">
+              {{ $t('No products found!') }}
+            </h4>
             <p>{{ $t('Please change Your search criteria and try again. If still not finding anything relevant, please visit the Home page and try out some of our bestsellers!') }}</p>
           </div>
           <product-listing columns="4" :products="products" />
@@ -24,11 +30,9 @@
 </template>
 
 <script>
+
 import Category from '@vue-storefront/core/pages/Category' // theme = default/base theme
 import Breadcrumbs from 'theme/components/core/Breadcrumbs.vue'
-// import builder from 'bodybuilder'
-
-// temporary(?) relative path
 import ProductListing from '../components/core/ProductListing.vue'
 
 export default {

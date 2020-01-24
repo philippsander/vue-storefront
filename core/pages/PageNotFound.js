@@ -7,9 +7,12 @@ import { Logger } from '@vue-storefront/core/lib/logger'
 export default {
   name: 'PageNotFound',
   mixins: [Composite],
-  async asyncData ({ store, routlo, context }) { // this is for SSR purposes to prefetch data
+  async asyncData ({ store, route, context }) { // this is for SSR purposes to prefetch data
     Logger.log('Entering asyncData for PageNotFound ' + new Date())()
-    if (context) context.output.cacheTags.add(`page-not-found`)
+    if (context) {
+      context.output.cacheTags.add(`page-not-found`)
+      context.server.response.statusCode = 404
+    }
     let ourBestsellersQuery = prepareQuery({ queryConfig: 'bestSellers' })
     const response = await store.dispatch('product/list', {
       query: ourBestsellersQuery,
@@ -23,7 +26,7 @@ export default {
   metaInfo () {
     return {
       title: this.$route.meta.title || i18n.t('404 Page Not Found'),
-      meta: this.$route.meta.description ? [{ vmid: 'description', description: this.$route.meta.description }] : []
+      meta: this.$route.meta.description ? [{ vmid: 'description', name: 'description', content: this.$route.meta.description }] : []
     }
   }
 }

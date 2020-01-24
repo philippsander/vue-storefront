@@ -61,7 +61,6 @@
           class="col-xs-12 mb10"
           id="addCompanyFilled"
           v-model="useCompanyAddress"
-          @click="fillCompanyAddress"
         >
           {{ $t("Use my company's address details") }}
         </base-checkbox>
@@ -102,10 +101,16 @@
           :placeholder="`${$t('City')} *`"
           v-model.trim="shippingDetails.city"
           @input="$v.shippingDetails.city.$touch()"
-          :validations="[{
+          :validations="[
+          {
             condition: !$v.shippingDetails.city.required && $v.shippingDetails.city.$error,
             text: $t('Field is required')
-          }]"
+          },
+          {
+            condition: $v.shippingDetails.city.$error && $v.shippingDetails.city.required,
+            text: $t('Please provide valid city name')
+          }
+          ]"
         />
 
         <base-input
@@ -164,7 +169,7 @@
           v-model.trim="shippingDetails.phone"
         />
 
-        <div class="hidden-xs col-sm-6 mb25"/>
+        <div class="hidden-xs col-sm-6 mb25" />
 
         <div class="col-xs-12 col-sm-6">
           <button-full
@@ -225,6 +230,7 @@
 <script>
 import { required, minLength } from 'vuelidate/lib/validators'
 import MyShippingDetails from '@vue-storefront/core/compatibility/components/blocks/MyAccount/MyShippingDetails'
+import { unicodeAlpha, unicodeAlphaNum } from '@vue-storefront/core/helpers/validators'
 
 import ButtonFull from 'theme/components/theme/ButtonFull'
 import Tooltip from 'theme/components/core/Tooltip'
@@ -255,7 +261,8 @@ export default {
     shippingDetails: {
       firstName: {
         required,
-        minLength: minLength(2)
+        minLength: minLength(2),
+        unicodeAlpha
       },
       lastName: {
         required
@@ -264,17 +271,20 @@ export default {
         required
       },
       street: {
-        required
+        required,
+        unicodeAlphaNum
       },
       house: {
-        required
+        required,
+        unicodeAlphaNum
       },
       postcode: {
         required,
         minLength: minLength(3)
       },
       city: {
-        required
+        required,
+        unicodeAlpha
       }
     }
   }

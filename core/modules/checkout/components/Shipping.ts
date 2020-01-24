@@ -1,7 +1,7 @@
 import { mapState, mapGetters } from 'vuex'
 import RootState from '@vue-storefront/core/types/RootState'
-const Countries = require('@vue-storefront/i18n/resource/countries.json')
 import toString from 'lodash-es/toString'
+const Countries = require('@vue-storefront/i18n/resource/countries.json')
 
 export const Shipping = {
   name: 'Shipping',
@@ -42,26 +42,47 @@ export const Shipping = {
       currentUser: (state: RootState) => state.user.current
     }),
     ...mapGetters({
-      shippingMethods: 'shipping/shippingMethods'
+      shippingMethods: 'checkout/getShippingMethods'
     }),
     checkoutShippingDetails () {
       return this.$store.state.checkout.shippingDetails
     },
     paymentMethod () {
-      return this.$store.state.payment.methods
+      return this.$store.getters['checkout/getPaymentMethods']
+    }
+  },
+  watch: {
+    shippingMethods: {
+      handler () {
+        this.checkDefaultShippingMethod()
+      }
+    },
+    shipToMyAddress: {
+      handler () {
+        this.useMyAddress()
+      },
+      immediate: true
     }
   },
   mounted () {
-    if (!this.shipping.shippingMethod || this.notInMethods(this.shipping.shippingMethod)) {
-      let shipping = this.shippingMethods.find(item => item.default)
-      if (!shipping && this.shippingMethods && this.shippingMethods.length > 0) {
-        shipping = this.shippingMethods[0]
-      }
-      this.shipping.shippingMethod = shipping.method_code
-      this.shipping.shippingCarrier = shipping.carrier_code
-    }
+    this.checkDefaultShippingAddress()
+    this.checkDefaultShippingMethod()
+    this.changeShippingMethod()
   },
   methods: {
+    checkDefaultShippingAddress () {
+      this.shipToMyAddress = this.hasShippingDetails()
+    },
+    checkDefaultShippingMethod () {
+      if (!this.shipping.shippingMethod || this.notInMethods(this.shipping.shippingMethod)) {
+        let shipping = this.shippingMethods.find(item => item.default)
+        if (!shipping && this.shippingMethods && this.shippingMethods.length > 0) {
+          shipping = this.shippingMethods[0]
+        }
+        this.shipping.shippingMethod = shipping.method_code
+        this.shipping.shippingCarrier = shipping.carrier_code
+      }
+    },
     onAfterShippingSet (receivedData) {
       this.shipping = receivedData
       this.isFilled = true
@@ -97,7 +118,6 @@ export const Shipping = {
       return false
     },
     useMyAddress () {
-      this.shipToMyAddress = !this.shipToMyAddress
       if (this.shipToMyAddress) {
         this.shipping = {
           firstName: this.myAddressDetails.firstname,
@@ -150,6 +170,7 @@ export const Shipping = {
     changeShippingMethod () {
       let currentShippingMethod = this.getCurrentShippingMethod()
       if (currentShippingMethod) {
+        this.shipping = Object.assign(this.shipping, {shippingCarrier: currentShippingMethod.carrier_code})
         this.$bus.$emit('checkout-after-shippingMethodChanged', {
           country: this.shipping.country,
           method_code: currentShippingMethod.method_code,

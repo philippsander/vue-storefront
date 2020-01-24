@@ -28,14 +28,14 @@
               @blur="$v.search.$touch()"
               class="search-panel-input"
               :placeholder="$t('Type what you are looking for...')"
-              type="text"
+              type="search"
               autofocus="true"
             >
           </div>
         </div>
       </div>
       <div v-if="visibleProducts.length && categories.length > 1" class="categories">
-        <category-panel :categories="categories" v-model="selectedCategoryIds"/>
+        <category-panel :categories="categories" v-model="selectedCategoryIds" />
       </div>
       <div class="product-listing row">
         <product-tile
@@ -83,6 +83,7 @@ import ProductTile from 'theme/components/core/ProductTile'
 import VueOfflineMixin from 'vue-offline/mixin'
 import CategoryPanel from 'theme/components/core/blocks/Category/CategoryPanel'
 import { minLength } from 'vuelidate/lib/validators'
+import { disableBodyScroll, clearAllBodyScrollLocks } from 'body-scroll-lock'
 
 export default {
   components: {
@@ -112,13 +113,16 @@ export default {
       return productList
     },
     categories () {
-      const categoriesMap = {}
-      this.products.forEach(product => {
-        [...product.category].forEach(category => {
-          categoriesMap[category.category_id] = category
-        })
-      })
-      return Object.keys(categoriesMap).map(categoryId => categoriesMap[categoryId])
+      const categories = this.products
+        .filter(p => p.category)
+        .map(p => p.category)
+        .flat()
+
+      const discinctCategories = Array.from(
+        new Set(categories.map(c => c.category_id))
+      ).map(catId => categories.find(c => c.category_id === catId))
+
+      return discinctCategories
     },
     getNoResultsMessage () {
       let msg = ''
@@ -134,6 +138,14 @@ export default {
     categories () {
       this.selectedCategoryIds = []
     }
+  },
+  mounted () {
+    // add autofocus to search input field
+    this.$refs.search.focus()
+    disableBodyScroll(this.$el)
+  },
+  destroyed () {
+    clearAllBodyScrollLocks()
   }
 }
 </script>
@@ -151,6 +163,7 @@ export default {
   z-index: 3;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 
   .close-icon-row {
     display: flex;

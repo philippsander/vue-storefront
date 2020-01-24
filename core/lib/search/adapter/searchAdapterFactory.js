@@ -1,20 +1,44 @@
 import { server } from 'config'
+import { Logger } from '@vue-storefront/core/lib/logger'
+let instances = {}
+
+const isImplementingSearchAdapterInterface = (obj) => {
+  return typeof obj.search === 'function' && typeof obj.registerEntityType === 'function'
+}
 
 export const getSearchAdapter = async (adapterName = server.api) => {
-  const SearchAdapterModule = await import(/* webpackChunkName: "vsf-search-adapter-" */ `./${adapterName}/searchAdapter`)
+  let SearchAdapterModule
+
+  try {
+    SearchAdapterModule = await import(/* webpackChunkName: "vsf-search-adapter-" */ `src/search/adapter/${adapterName}/searchAdapter`)
+  } catch {}
+
+  if (!SearchAdapterModule) {
+    try {
+      SearchAdapterModule = await import(/* webpackChunkName: "vsf-search-adapter-" */ `./${adapterName}/searchAdapter`)
+    } catch {}
+  }
+
+  if (!SearchAdapterModule) {
+    throw new Error('Search adapter module was not found in `serc/search/adapter` neither in the `core/lib/search/addapter` folders')
+  }
+
   const SearchAdapter = SearchAdapterModule.SearchAdapter
 
   if (!SearchAdapter) {
     throw new Error('Search adapter class is not provided')
-  } else {
-    let adapterInstance = new SearchAdapter()
-
-    if (typeof adapterInstance.isValidFor === 'function' && typeof adapterInstance.search === 'function' && typeof adapterInstance.handleResult === 'function') {
-      throw new Error('Not valid search adapter class provided. Search Adapter must have search() and handleResult() methods')
-    }
-
-    return adapterInstance
   }
+
+  if (instances[adapterName]) {
+    return instances[adapterName]
+  }
+
+  const searchAdapter = new SearchAdapter()
+  if (!isImplementingSearchAdapterInterface(searchAdapter)) {
+    throw new Error('Not valid search adapter class provided. Search Adapter must implements SearchAdapterInterfaces')
+  }
+  instances[adapterName] = searchAdapter;
+  return instances[adapterName];
 }
 
 export default {

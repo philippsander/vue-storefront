@@ -30,14 +30,13 @@
       </div>
     </div>
     <div class="row pl20" v-if="isActive">
-      <div class="hidden-xs col-sm-2 col-md-1"/>
+      <div class="hidden-xs col-sm-2 col-md-1" />
       <div class="col-xs-11 col-sm-9 col-md-10">
         <div class="row" v-if="isActive">
           <base-checkbox
             class="col-xs-12 mb15"
             id="sendToShippingAddressCheckbox"
             v-model="sendToShippingAddress"
-            @click="useShippingAddress"
             v-if="!isVirtualCart"
           >
             {{ $t('Copy address data from shipping') }}
@@ -48,7 +47,6 @@
             class="col-xs-12 mb15"
             id="sendToBillingAddressCheckbox"
             v-model="sendToBillingAddress"
-            @click="useBillingAddress"
           >
             {{ $t('Use my billing data') }}
           </base-checkbox>
@@ -123,10 +121,16 @@
             v-model.trim="payment.city"
             @blur="$v.payment.city.$touch()"
             autocomplete="address-level2"
-            :validations="[{
+            :validations="[
+            {
               condition: $v.payment.city.$error && !$v.payment.city.required,
               text: $t('Field is required')
-            }]"
+            },
+            {
+              condition: $v.payment.city.$error && $v.payment.city.required,
+              text: $t('Please provide valid city name')
+            }
+            ]"
           />
 
           <base-input
@@ -173,7 +177,7 @@
             v-model="payment.country"
             autocomplete="country-name"
             @blur="$v.payment.country.$touch()"
-            @change="$v.payment.country.$touch()"
+            @change="$v.payment.country.$touch(); changeCountry();"
           />
 
           <base-input
@@ -189,7 +193,6 @@
             class="col-xs-12 mb15"
             id="generateInvoiceCheckbox"
             v-model="generateInvoice"
-            @click="useGenerateInvoice"
           >
             {{ $t('I want to generate an invoice for the company') }}
           </base-checkbox>
@@ -250,7 +253,7 @@
                 v-model="payment.paymentMethod"
                 @change="$v.payment.paymentMethod.$touch(); changePaymentMethod();"
               >
-              <span class="checkmark"/>
+              <span class="checkmark" />
             </label>
           </div>
           <span class="validation-error" v-if="!$v.payment.paymentMethod.required">{{ $t('Field is required') }}</span>
@@ -258,7 +261,7 @@
       </div>
     </div>
     <div class="row" v-if="isActive">
-      <div class="hidden-xs col-sm-2 col-md-1"/>
+      <div class="hidden-xs col-sm-2 col-md-1" />
       <div class="col-xs-12 col-sm-9 col-md-11">
         <div class="row">
           <div class="col-xs-12 col-md-8 px20 my30">
@@ -274,7 +277,7 @@
       </div>
     </div>
     <div class="row pl20" v-if="!isActive && isFilled">
-      <div class="hidden-xs col-sm-2 col-md-1"/>
+      <div class="hidden-xs col-sm-2 col-md-1" />
       <div class="col-xs-12 col-sm-9 col-md-11">
         <div class="row fs16 mb35">
           <div class="col-xs-12 h4">
@@ -304,7 +307,7 @@
             <div class="col-md-6 mb15">
               <label class="radioStyled"> {{ getPaymentMethod().title }}
                 <input type="radio" value="" checked disabled name="chosen-payment-method">
-                <span class="checkmark"/>
+                <span class="checkmark" />
               </label>
             </div>
           </div>

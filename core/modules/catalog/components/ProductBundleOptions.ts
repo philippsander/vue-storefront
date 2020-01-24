@@ -43,7 +43,7 @@ export const ProductBundleOptions = {
   },
   methods: {
     ...mapMutations('product', {
-      setBundleOptionValue: types.CATALOG_UPD_BUNDLE_OPTION // map `this.add()` to `this.$store.commit('increment')`
+      setBundleOptionValue: types.PRODUCT_SET_BUNDLE_OPTION // map `this.add()` to `this.$store.commit('increment')`
     }),
     setupValidationRules () {
       rootStore.dispatch('product/addCustomOptionValidator', {
@@ -61,9 +61,9 @@ export const ProductBundleOptions = {
         }
       }
     },
-    optionChanged({fieldName, option, qty, value}) {
+    optionChanged ({fieldName, option, qty, value}) {
       if (!fieldName) return
-      this.setBundleOptionValue({ optionId: option.option_id, optionQty: parseInt(qty), optionSelections: [value.id] })
+      this.setBundleOptionValue({ optionId: option.option_id, optionQty: parseInt(qty), optionSelections: [parseInt(value.id)] })
       this.$store.dispatch('product/setBundleOptions', { product: this.product, bundleOptions: this.$store.state.product.current_bundle_options }) // TODO: move it to "AddToCart"
       this.selectedOptions[fieldName] = {qty, value}
       const valueId = value ? value.id : null
@@ -86,9 +86,9 @@ export const ProductBundleOptions = {
           const validator = this.$store.state.product.custom_options_validators[validationRule]
           if (typeof validator === 'function') {
             const quantityValidationResult = validator(qty)
-            if(quantityValidationResult.error) validationResult = quantityValidationResult
+            if (quantityValidationResult.error) validationResult = quantityValidationResult
             const optionValidationResult = validator(optionId)
-            if(optionValidationResult.error) validationResult = optionValidationResult
+            if (optionValidationResult.error) validationResult = optionValidationResult
             this.$set(this.validationResults, fieldName, validationResult)
             if (validationResult.error) {
               this.product.errors['bundle_options_' + fieldName] = i18n.t('Please configure product bundle options and fix the validation errors')

@@ -1,4 +1,4 @@
-import rootStore from '@vue-storefront/core/store'
+import config from 'config'
 
 export const ProductBundleOption = {
   name: 'ProductBundleOption',
@@ -19,53 +19,62 @@ export const ProductBundleOption = {
     }
   },
   computed: {
-    productBundleOption() {
+    productBundleOption () {
       return `bundleOption_${this.option.option_id}`
     },
-    bundleOptionName() {
+    bundleOptionName () {
       return `bundleOption_${this._uid}_${this.option.option_id}_`
     },
-    quantityName() {
+    quantityName () {
       return `bundleOptionQty_${this.option.option_id}`
     },
-    value() {
-      return this.option.product_links.find(product => product.id === this.productOptionId)
+    value () {
+      const { product_links } = this.option
+      if (Array.isArray(product_links)) {
+        return product_links.find(product => product.id === this.productOptionId)
+      }
+      return product_links
     },
-    errorMessage() {
-      return this.errorMessages ? this.errorMessages[this.quantityName] : ""
+    errorMessage () {
+      return this.errorMessages ? this.errorMessages[this.quantityName] : ''
     }
   },
-  mounted() {
+  mounted () {
     this.setDefaultValues()
-    if (rootStore.state.config.usePriceTiers) {
+    if (config.usePriceTiers) {
       this.$bus.$on('product-after-setup-associated', this.setDefaultValues)
     }
   },
   beforeDestroy () {
-    if (rootStore.state.config.usePriceTiers) {
+    if (config.usePriceTiers) {
       this.$bus.$off('product-after-setup-associated', this.setDefaultValues)
     }
   },
   watch: {
-    productOptionId(value) {
+    productOptionId (value) {
       this.bundleOptionChanged()
     },
-    quantity(value) {
+    quantity (value) {
       this.bundleOptionChanged()
     }
   },
   methods: {
-    setDefaultValues() {
-      if(this.option.product_links) {
-        const defaultOption = this.option.product_links.find(pl => { return pl.is_default })
-        this.productOptionId = defaultOption ? defaultOption.id : this.option.product_links[0].id
+    setDefaultValues () {
+      const { product_links } = this.option
+
+      if (product_links) {
+        const defaultOption = Array.isArray(product_links)
+          ? product_links.find(pl => pl.is_default)
+          : product_links
+
+        this.productOptionId = defaultOption ? defaultOption.id : product_links[0].id
         this.quantity = defaultOption ? defaultOption.qty : 1
       }
     },
-    bundleOptionChanged() {
-      this.$emit('optionChanged', {
+    bundleOptionChanged () {
+      this.$emit('option-changed', {
         option: this.option,
-        fieldName: this.productBundleOption, 
+        fieldName: this.productBundleOption,
         qty: this.quantity,
         value: this.value
       })
