@@ -1,13 +1,14 @@
 import map from 'lodash-es/map'
-import { prepareElasticsearchQueryBody } from './elasticsearchQuery'
+import { elasticsearch } from 'storefront-query-builder'
 import fetch from 'isomorphic-fetch'
 import { slugify, processURLAddress } from '@vue-storefront/core/helpers'
 import queryString from 'query-string'
 import { currentStoreView, prepareStoreView } from '../../../multistore'
-import SearchQuery from '@vue-storefront/core/lib/search/searchQuery'
+import { SearchQuery } from 'storefront-query-builder'
 import HttpQuery from '@vue-storefront/core/types/search/HttpQuery'
 import { SearchResponse } from '@vue-storefront/core/types/search/SearchResponse'
 import config from 'config'
+import getApiEndpointUrl from '@vue-storefront/core/helpers/getApiEndpointUrl';
 
 export class SearchAdapter {
   public entities: any
@@ -23,7 +24,8 @@ export class SearchAdapter {
     }
     let ElasticsearchQueryBody = {}
     if (Request.searchQuery instanceof SearchQuery) {
-      ElasticsearchQueryBody = await prepareElasticsearchQueryBody(Request.searchQuery)
+      const bodybuilder = await import(/* webpackChunkName: "bodybuilder" */ 'bodybuilder')
+      ElasticsearchQueryBody = await elasticsearch.buildQueryBodyFromSearchQuery({ config, queryChain: bodybuilder.default(), searchQuery: Request.searchQuery })
       if (Request.searchQuery.getSearchText() !== '') {
         ElasticsearchQueryBody['min_score'] = config.elasticsearch.min_score
       }
@@ -38,14 +40,14 @@ export class SearchAdapter {
       ElasticsearchQueryBody['groupToken'] = Request.groupToken
     }
 
-    const storeView = (Request.store === null) ? currentStoreView() : prepareStoreView(Request.store)
+    const storeView = (Request.store === null) ? currentStoreView() : await prepareStoreView(Request.store)
 
     Request.index = storeView.elasticsearch.index
 
-    let url = processURLAddress(storeView.elasticsearch.host)
+    let url = processURLAddress(getApiEndpointUrl(storeView.elasticsearch, 'host'))
 
     if (this.entities[Request.type].url) {
-      url = this.entities[Request.type].url
+      url = getApiEndpointUrl(this.entities[Request.type], 'url')
     }
 
     const httpQuery: HttpQuery = {
@@ -72,7 +74,9 @@ export class SearchAdapter {
     }
     url = url + '/' + encodeURIComponent(Request.index) + '/' + encodeURIComponent(Request.type) + '/_search'
     url = url + '?' + queryString.stringify(httpQuery)
-    return fetch(url, { method: config.elasticsearch.queryMethod,
+
+    return fetch(url, {
+      method: config.elasticsearch.queryMethod,
       mode: 'cors',
       headers: {
         'Accept': 'application/json',
@@ -110,13 +114,16 @@ export class SearchAdapter {
     }
   }
 
-  public registerEntityType (entityType, { url = '', queryProcessor, resultPorcessor }) {
+  public registerEntityType (entityType, { url = '', url_ssr = '', queryProcessor, resultPorcessor }) {
     this.entities[entityType] = {
       queryProcessor: queryProcessor,
       resultPorcessor: resultPorcessor
     }
     if (url !== '') {
       this.entities[entityType]['url'] = url
+    }
+    if (url_ssr !== '') {
+      this.entities[entityType]['url_ssr'] = url_ssr
     }
     return this
   }

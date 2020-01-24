@@ -2,7 +2,7 @@ import Vue from 'vue';
 import { Logger } from '@vue-storefront/core/lib/logger';
 import config from 'config';
 import { StorageManager } from '@vue-storefront/core/lib/storage-manager';
-import { entityKeyName } from '@vue-storefront/core/store/lib/entities';
+import { entityKeyName } from '@vue-storefront/core/lib/store/entities';
 
 export const canCache = ({ includeFields, excludeFields }) => {
   const isCacheable = includeFields === null && excludeFields === null;
@@ -43,7 +43,7 @@ export const configureChildren = product => {
 
 export const storeProductToCache = (product, cacheByKey) => {
   const cacheKey = getCacheKey(product, cacheByKey);
-  const cache = StorageManager.get('elasticCacheCollection');
+  const cache = StorageManager.get('elasticCache');
 
   cache
     .setItem(cacheKey, product, null, config.products.disablePersistentProductsCache)
@@ -57,7 +57,7 @@ export const storeProductToCache = (product, cacheByKey) => {
 };
 
 export const preConfigureProduct = ({ product, populateRequestCacheTags }) => {
-  const shouldPopulateCacheTags = populateRequestCacheTags && Vue.prototype.$ssrRequestContext;
+  const shouldPopulateCacheTags = populateRequestCacheTags && Vue.prototype.$cacheTags;
   const isFirstVariantAsDefaultInURL =
     config.products.setFirstVarianAsDefaultInURL &&
     product.hasOwnProperty('configurable_children') &&
@@ -66,7 +66,7 @@ export const preConfigureProduct = ({ product, populateRequestCacheTags }) => {
   product.info = {};
 
   if (shouldPopulateCacheTags) {
-    Vue.prototype.$ssrRequestContext.output.cacheTags.add(`P${product.id}`);
+    Vue.prototype.$cacheTags.add(`P${product.id}`);
   }
 
   if (!product.parentSku) {

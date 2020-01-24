@@ -45,17 +45,17 @@
       <span
         class="price-original mr5 lh30 cl-secondary"
         v-if="product.special_price && parseFloat(product.original_price_incl_tax) > 0 && !onlyImage"
-      >{{ product.original_price_incl_tax | price }}</span>
+      >{{ product.original_price_incl_tax | price(storeView) }}</span>
 
       <span
         class="price-special lh30 cl-accent weight-700"
         v-if="product.special_price && parseFloat(product.special_price) > 0 && !onlyImage"
-      >{{ product.price_incl_tax | price }}</span>
+      >{{ product.price_incl_tax | price(storeView) }}</span>
 
       <span
         class="lh30 cl-secondary"
         v-if="!product.special_price && parseFloat(product.price_incl_tax) > 0 && !onlyImage"
-      >{{ product.price_incl_tax | price }}</span>
+      >{{ product.price_incl_tax | price(storeView) }}</span>
     </router-link>
   </div>
 </template>
@@ -69,6 +69,7 @@ import AddToWishlist from 'theme/components/core/blocks/Wishlist/AddToWishlist'
 import AddToCompare from 'theme/components/core/blocks/Compare/AddToCompare'
 import { IsOnWishlist } from '@vue-storefront/core/modules/wishlist/components/IsOnWishlist'
 import { IsOnCompare } from '@vue-storefront/core/modules/compare/components/IsOnCompare'
+import { currentStoreView } from '@vue-storefront/core/lib/multistore'
 
 export default {
   mixins: [ProductTile, IsOnWishlist, IsOnCompare],
@@ -96,6 +97,9 @@ export default {
     },
     favoriteIcon () {
       return this.isOnWishlist ? 'favorite' : 'favorite_border'
+    },
+    storeView () {
+      return currentStoreView()
     }
   },
   methods: {
@@ -108,7 +112,7 @@ export default {
       if (
         isVisible &&
         config.products.configurableChildrenStockPrefetchDynamic &&
-        rootStore.products.filterUnavailableVariants &&
+        config.products.filterUnavailableVariants &&
         this.product.type_id === 'configurable' &&
         this.product.configurable_children &&
         this.product.configurable_children.length > 0
@@ -198,7 +202,7 @@ $color-white: color(white);
 
 .product-cover {
   overflow: hidden;
-  max-height: 300px;
+
   &__thumb {
     padding-bottom: calc(143.88% / (164.5 / 100));
     @media screen and (min-width: 768px) {
@@ -208,16 +212,20 @@ $color-white: color(white);
     will-change: opacity, transform;
     transition: 0.3s opacity $motion-main, 0.3s transform $motion-main;
   }
-  &:hover {
-    .product-cover__thumb {
-      opacity: 1;
-      transform: scale(1.1);
-    }
-    &.sale::after,
-    &.new::after {
-      opacity: 0.8;
+
+  @media screen and (min-width: 768px) {
+    &:hover {
+      .product-cover__thumb {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+      &.sale::after,
+      &.new::after {
+        opacity: 0.8;
+      }
     }
   }
+
   &.sale {
     &::after {
       @extend %label;

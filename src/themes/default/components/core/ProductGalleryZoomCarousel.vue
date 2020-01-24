@@ -1,7 +1,7 @@
 <template>
   <div class="media-zoom-carousel">
     <div class="media-zoom-carousel__container row flex">
-      <ul class="media-zoom-carousel__thumbs m0 p0">
+      <ul class="media-zoom-carousel__thumbs m0 p0" ref="thumbs">
         <li class="media-zoom-carousel__thumb bg-cl-secondary" v-for="(images, index) in gallery" :key="images.src">
           <product-image
             @click="navigate(index)"
@@ -31,10 +31,11 @@
             <div class="media-zoom-carousel__slide bg-cl-secondary"
                  :class="{'video-container h-100 flex relative': images.video}"
             >
-              <product-image
+              <product-gallery-image
                 v-show="hideImageAtIndex !== index"
                 :image="images"
                 :alt="productName | htmlDecode"
+                :is-active="index === currentPage"
               />
               <product-video
                 v-if="images.video && (index === currentPage)"
@@ -52,7 +53,9 @@
 
 <script>
 import { Carousel, Slide } from 'vue-carousel'
+import { disableBodyScroll, clearAllBodyScrollLocks } from 'body-scroll-lock'
 import ProductImage from './ProductImage'
+import ProductGalleryImage from './ProductGalleryImage'
 import ProductVideo from './ProductVideo'
 
 export default {
@@ -83,9 +86,13 @@ export default {
     Carousel,
     Slide,
     ProductImage,
+    ProductGalleryImage,
     ProductVideo
   },
   mounted () {
+    this.$nextTick(() => {
+      disableBodyScroll(this.$refs.thumbs)
+    })
     this.navigate(this.currentSlide)
     if (this.$refs.zoomCarousel) {
       let navigation = this.$refs.zoomCarousel.$children.find(c => c.$el.className === 'VueCarousel-navigation')
@@ -97,6 +104,9 @@ export default {
         pagination.$on('paginationclick', this.increaseCarouselTransitionSpeed)
       }
     }
+  },
+  destroyed () {
+    clearAllBodyScrollLocks()
   },
   methods: {
     navigate (key) {
